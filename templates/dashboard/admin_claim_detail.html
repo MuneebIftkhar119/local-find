@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Review Claim — LocalFind{% endblock %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3><i class="bi bi-clipboard-check"></i> Review Claim</h3>
+      <a href="{% url 'items:admin_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        Back to Admin Panel
+      </a>
+    </div>
+
+    <!-- Item Info -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-header bg-white"><strong>Item Details</strong></div>
+      <div class="card-body">
+        <div class="row">
+          {% if claim.item.image %}
+          <div class="col-md-4">
+            <img src="{{ claim.item.image.url }}" class="img-fluid rounded" alt="{{ claim.item.title }}">
+          </div>
+          {% endif %}
+          <div class="col">
+            <h5>{{ claim.item.title }}</h5>
+            <span class="badge {% if claim.item.item_type == 'lost' %}bg-danger{% else %}bg-success{% endif %} mb-2">
+              {{ claim.item.get_item_type_display }}
+            </span>
+            <span class="badge bg-secondary mb-2">{{ claim.item.get_category_display }}</span>
+            <p class="text-muted mb-1">{{ claim.item.description }}</p>
+            <p class="mb-1"><i class="bi bi-geo-alt"></i> {{ claim.item.location }}</p>
+            <p class="mb-1"><i class="bi bi-calendar"></i> {{ claim.item.date_of_incident }}</p>
+            <p class="mb-0"><i class="bi bi-person"></i> Posted by: <strong>{{ claim.item.posted_by.full_name }}</strong></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Claimant Info -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-header bg-white"><strong>Claimant Details</strong></div>
+      <div class="card-body">
+        <p><i class="bi bi-person-circle"></i> <strong>{{ claim.claimant.full_name }}</strong></p>
+        <p><i class="bi bi-envelope"></i> {{ claim.claimant.email }}</p>
+        <p><i class="bi bi-telephone"></i> {{ claim.claimant.phone_number|default:"Not provided" }}</p>
+        <p><i class="bi bi-geo"></i> {{ claim.claimant.campus_location|default:"Not provided" }}</p>
+        <hr>
+        <p class="mb-1"><strong>Contact given in claim:</strong></p>
+        <p>{{ claim.contact_details }}</p>
+        <hr>
+        <p class="mb-1"><strong>Proof of ownership:</strong></p>
+        <p class="fst-italic">"{{ claim.proof_description }}"</p>
+        <small class="text-muted">Submitted: {{ claim.submitted_at|date:"M d, Y — H:i" }}</small>
+      </div>
+    </div>
+
+    <!-- Decision -->
+    {% if claim.status == 'pending' %}
+    <div class="card shadow-sm border-warning">
+      <div class="card-header bg-warning bg-opacity-10">
+        <strong><i class="bi bi-exclamation-circle"></i> Make a Decision</strong>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Admin Remarks (optional)</label>
+            <textarea name="admin_remarks" class="form-control" rows="3"
+              placeholder="e.g. Verified via student ID, approved. / Proof insufficient, rejected."></textarea>
+          </div>
+          <div class="d-flex gap-3">
+            <button type="submit" name="action" value="approve"
+              class="btn btn-success flex-fill">
+              <i class="bi bi-check-circle"></i> Approve Claim
+            </button>
+            <button type="submit" name="action" value="reject"
+              class="btn btn-danger flex-fill">
+              <i class="bi bi-x-circle"></i> Reject Claim
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <p><strong>Decision:</strong>
+          {% if claim.status == 'approved' %}
+          <span class="badge bg-success">Approved</span>
+          {% else %}
+          <span class="badge bg-danger">Rejected</span>
+          {% endif %}
+        </p>
+        {% if claim.admin_remarks %}
+        <p><strong>Remarks:</strong> {{ claim.admin_remarks }}</p>
+        {% endif %}
+        <p><strong>Resolved on:</strong> {{ claim.resolved_at|date:"M d, Y — H:i" }}</p>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block title %}Admin Panel — LocalFind{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3><i class="bi bi-shield-check"></i> Admin Panel</h3>
+  <a href="{% url 'items:home' %}" class="btn btn-outline-secondary btn-sm">Back to Site</a>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card text-white bg-primary text-center p-3">
+      <h2>{{ total_items }}</h2>
+      <small>Total Items</small>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-success text-center p-3">
+      <h2>{{ active_items }}</h2>
+      <small>Active Items</small>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-warning text-center p-3">
+      <h2>{{ pending_claims }}</h2>
+      <small>Pending Claims</small>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-info text-center p-3">
+      <h2>{{ resolved_items }}</h2>
+      <small>Resolved</small>
+    </div>
+  </div>
+</div>
+
+<!-- All Claims Table -->
+<div class="card shadow-sm">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0"><i class="bi bi-list-check"></i> All Claims</h5>
+    <span class="badge bg-warning text-dark">{{ pending_claims }} pending</span>
+  </div>
+  <div class="card-body p-0">
+    {% if all_claims %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Item</th>
+            <th>Type</th>
+            <th>Claimant</th>
+            <th>Contact</th>
+            <th>Submitted</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for claim in all_claims %}
+          <tr>
+            <td><strong>{{ claim.item.title }}</strong></td>
+            <td>
+              <span class="badge {% if claim.item.item_type == 'lost' %}bg-danger{% else %}bg-success{% endif %}">
+                {{ claim.item.get_item_type_display }}
+              </span>
+            </td>
+            <td>
+              {{ claim.claimant.full_name }}<br>
+              <small class="text-muted">{{ claim.claimant.email }}</small>
+            </td>
+            <td><small>{{ claim.contact_details }}</small></td>
+            <td><small>{{ claim.submitted_at|date:"M d, Y" }}</small></td>
+            <td>
+              {% if claim.status == 'pending' %}
+              <span class="badge bg-warning text-dark">Pending</span>
+              {% elif claim.status == 'approved' %}
+              <span class="badge bg-success">Approved</span>
+              {% else %}
+              <span class="badge bg-danger">Rejected</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if claim.status == 'pending' %}
+              <a href="{% url 'items:admin_claim_detail' claim.pk %}"
+                 class="btn btn-sm btn-primary">Review</a>
+              {% else %}
+              <a href="{% url 'items:admin_claim_detail' claim.pk %}"
+                 class="btn btn-sm btn-outline-secondary">View</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-inbox" style="font-size:3rem;"></i>
+      <p class="mt-2">No claims yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<div class="card shadow-sm mt-4">
+  <div class="card-header bg-white">
+    <h5 class="mb-0"><i class="bi bi-hand-thumbs-up"></i> Found Responses (For Lost Items)</h5>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Lost Item</th>
+            <th>Finder</th>
+            <th>Message</th>
+            <th>Contact</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for resp in all_responses %}
+          <tr>
+            <td><strong>{{ resp.item.title }}</strong></td>
+            <td>{{ resp.responder.full_name }}<br><small class="text-muted">{{ resp.responder.email }}</small></td>
+            <td><small>{{ resp.message|truncatechars:60 }}</small></td>
+            <td><small>{{ resp.contact_details }}</small></td>
+            <td><small>{{ resp.submitted_at|date:"M d, Y" }}</small></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-3">No response yet </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

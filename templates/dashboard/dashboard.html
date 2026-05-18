@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — LocalFind{% endblock %}
+{% block content %}
+<h3 class="mb-4"><i class="bi bi-speedometer2"></i> My Dashboard</h3>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card text-white bg-danger">
+      <div class="card-body">
+        <h5 class="card-title">Lost Items</h5>
+        <h2>{{ my_lost.count }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-success">
+      <div class="card-body">
+        <h5 class="card-title">Found Items</h5>
+        <h2>{{ my_found.count }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-primary">
+      <div class="card-body">
+        <h5 class="card-title">Claims Submitted</h5>
+        <h2>{{ my_claims.count }}</h2>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-white bg-warning">
+      <div class="card-body">
+        <h5 class="card-title">New Responses</h5>
+        <h2>{{ unread_count }}</h2>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Unread alert -->
+{% if unread_count > 0 %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+  <i class="bi bi-bell-fill"></i>
+  <strong>{{ unread_count }} new response{{ unread_count|pluralize }}</strong> — someone has responded to your lost item. Check the Inbox tab.
+</div>
+{% endif %}
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" id="dashTabs">
+  <li class="nav-item">
+    <a class="nav-link active" data-bs-toggle="tab" href="#lost">
+      <i class="bi bi-search"></i> My Lost Items
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#found">
+      <i class="bi bi-box-seam"></i> My Found Items
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#claims">
+      <i class="bi bi-hand-index"></i> My Claims
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#responses">
+      <i class="bi bi-reply"></i> My Responses
+    </a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#inbox">
+      <i class="bi bi-inbox"></i> Inbox
+      {% if unread_count > 0 %}
+      <span class="badge bg-danger ms-1">{{ unread_count }}</span>
+      {% endif %}
+    </a>
+  </li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- My Lost Items -->
+  <div class="tab-pane fade show active" id="lost">
+    {% for item in my_lost %}
+    <div class="card mb-2 shadow-sm">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ item.title }}</strong>
+          <span class="badge bg-secondary ms-2">{{ item.get_category_display }}</span>
+          <span class="ms-2 status-{{ item.status }}">{{ item.get_status_display }}</span>
+          {% if item.found_responses.count > 0 %}
+          <span class="badge bg-info text-dark ms-2">
+            <i class="bi bi-chat-dots"></i> {{ item.found_responses.count }} response{{ item.found_responses.count|pluralize }}
+          </span>
+          {% endif %}
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{% url 'items:detail' item.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+          {% if item.status != 'resolved' %}
+          <a href="{% url 'items:resolve_item' item.pk %}"
+             class="btn btn-sm btn-success"
+             onclick="return confirm('Mark this item as resolved? It will be removed from browse.')">
+            <i class="bi bi-check-circle"></i> Mark Resolved
+          </a>
+          {% else %}
+          <span class="badge bg-success d-flex align-items-center">Resolved</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-4 text-muted">
+      <i class="bi bi-search" style="font-size:2rem;"></i>
+      <p class="mt-2">You have not posted any lost items yet.</p>
+      <a href="{% url 'items:post_item' %}" class="btn btn-primary btn-sm">Post a Lost Item</a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- My Found Items -->
+  <div class="tab-pane fade" id="found">
+    {% for item in my_found %}
+    <div class="card mb-2 shadow-sm">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ item.title }}</strong>
+          <span class="badge bg-secondary ms-2">{{ item.get_category_display }}</span>
+          <span class="ms-2 status-{{ item.status }}">{{ item.get_status_display }}</span>
+          {% if item.claims.count > 0 %}
+          <span class="badge bg-info text-dark ms-2">
+            <i class="bi bi-hand-index"></i> {{ item.claims.count }} claim{{ item.claims.count|pluralize }}
+          </span>
+          {% endif %}
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{% url 'items:detail' item.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+          {% if item.status != 'resolved' %}
+          <a href="{% url 'items:resolve_item' item.pk %}"
+             class="btn btn-sm btn-success"
+             onclick="return confirm('Mark this item as resolved? It will be removed from browse.')">
+            <i class="bi bi-check-circle"></i> Mark Resolved
+          </a>
+          {% else %}
+          <span class="badge bg-success d-flex align-items-center">Resolved</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-4 text-muted">
+      <i class="bi bi-box-seam" style="font-size:2rem;"></i>
+      <p class="mt-2">You have not posted any found items yet.</p>
+      <a href="{% url 'items:post_item' %}" class="btn btn-primary btn-sm">Post a Found Item</a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- My Claims -->
+  <div class="tab-pane fade" id="claims">
+    {% for claim in my_claims %}
+    <div class="card mb-2 shadow-sm">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ claim.item.title }}</strong>
+          <span class="ms-2
+            {% if claim.status == 'approved' %}text-success
+            {% elif claim.status == 'rejected' %}text-danger
+            {% else %}text-warning{% endif %}">
+            <i class="bi bi-circle-fill" style="font-size:.5rem; vertical-align:middle;"></i>
+            {{ claim.get_status_display }}
+          </span>
+          {% if claim.admin_remarks %}
+          <small class="text-muted d-block mt-1">
+            <i class="bi bi-chat-left-text"></i> {{ claim.admin_remarks }}
+          </small>
+          {% endif %}
+          <small class="text-muted d-block">Submitted: {{ claim.submitted_at|date:"M d, Y" }}</small>
+        </div>
+        <a href="{% url 'items:detail' claim.item.pk %}" class="btn btn-sm btn-outline-primary">View Item</a>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-4 text-muted">
+      <i class="bi bi-hand-index" style="font-size:2rem;"></i>
+      <p class="mt-2">You have not submitted any claims yet.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- My Responses (items I responded to) -->
+  <div class="tab-pane fade" id="responses">
+    {% for resp in my_responses %}
+    <div class="card mb-2 shadow-sm">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ resp.item.title }}</strong>
+          {% if resp.item.status == 'resolved' %}
+          <span class="badge bg-success ms-2">Resolved</span>
+          {% else %}
+          <span class="badge bg-warning text-dark ms-2">Pending</span>
+          {% endif %}
+          <small class="text-muted d-block mt-1">{{ resp.message|truncatechars:80 }}</small>
+          <small class="text-muted">Responded: {{ resp.submitted_at|date:"M d, Y" }}</small>
+        </div>
+        <a href="{% url 'items:detail' resp.item.pk %}" class="btn btn-sm btn-outline-primary">View Item</a>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-4 text-muted">
+      <i class="bi bi-reply" style="font-size:2rem;"></i>
+      <p class="mt-2">You have not responded to any lost items yet.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Inbox (responses on my items) -->
+  <div class="tab-pane fade" id="inbox">
+    {% for resp in responses_on_my_items %}
+    <div class="card mb-3 shadow-sm {% if not resp.is_read %}border-warning{% endif %}">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            {% if not resp.is_read %}
+            <span class="badge bg-warning text-dark mb-2">New</span>
+            {% endif %}
+            <h6 class="mb-1">
+              <i class="bi bi-hand-thumbs-up text-success"></i>
+              <strong>{{ resp.responder.full_name }}</strong> responded to your item
+            </h6>
+            <p class="mb-1 text-muted small">
+              Item: <strong>{{ resp.item.title }}</strong> &mdash;
+              <span class="status-{{ resp.item.status }}">{{ resp.item.get_status_display }}</span>
+            </p>
+            <p class="mb-2">{{ resp.message }}</p>
+            <p class="mb-1">
+              <i class="bi bi-telephone"></i>
+              <strong>Contact:</strong> {{ resp.contact_details }}
+            </p>
+            <small class="text-muted">
+              <i class="bi bi-clock"></i> {{ resp.submitted_at|date:"M d, Y — H:i" }}
+            </small>
+          </div>
+          <div class="d-flex flex-column gap-2 ms-3">
+            <a href="{% url 'items:detail' resp.item.pk %}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-eye"></i> View Item
+            </a>
+            {% if not resp.is_read %}
+            <a href="{% url 'items:mark_response_read' resp.pk %}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-check"></i> Mark Read
+            </a>
+            {% endif %}
+            {% if resp.item.status != 'resolved' %}
+            <a href="{% url 'items:resolve_item' resp.item.pk %}"
+               class="btn btn-sm btn-success"
+               onclick="return confirm('Mark this item as resolved? It will be removed from browse.')">
+              <i class="bi bi-check-circle"></i> Mark Resolved
+            </a>
+            {% else %}
+            <span class="badge bg-success text-center py-2">Resolved</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-4 text-muted">
+      <i class="bi bi-inbox" style="font-size:2rem;"></i>
+      <p class="mt-2">No one has responded to your items yet.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}  
