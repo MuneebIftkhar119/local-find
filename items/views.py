@@ -2,14 +2,20 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
-from .models import Item, Claim, FoundResponse
+from .models import Item, Claim, FoundResponse, Notification
 from .forms import ItemForm, ClaimForm, SearchForm, FoundResponseForm
 
 
 def is_admin(user):
     return user.is_staff
 
-
+def create_notification(recipient, notif_type, item, message):
+    Notification.objects.create(
+        recipient=recipient,
+        notif_type=notif_type,
+        item=item,
+        message=message,
+    )
 def home(request):
     form  = SearchForm(request.GET)
     items = Item.objects.filter(status='active')
@@ -54,6 +60,7 @@ def item_detail(request, pk):
         'already_claimed':   already_claimed,
         'already_responded': already_responded,
     })
+
 @login_required
 def mark_item_resolved(request, pk):
     item = get_object_or_404(Item, pk=pk, posted_by=request.user)
@@ -97,6 +104,12 @@ def claim_item(request, pk):
             claim.save()
             item.status = 'claimed'
             item.save()
+            create_notification(
+                recipient=item.posted_by,
+                notif_type='claim_submitted',
+                item=item,
+                message=f'{request.user.full_name} submitted a claim on your item "{item.title}".',
+            )
             messages.success(request, 'Claim submitted! You will be notified once reviewed.')
             return redirect('items:detail', pk=pk)
     else:
@@ -112,6 +125,8 @@ def dashboard(request):
     my_responses     = FoundResponse.objects.filter(responder=request.user)
     responses_on_my_items = FoundResponse.objects.filter(item__posted_by=request.user).order_by('-submitted_at')
     unread_count     = responses_on_my_items.filter(is_read=False).count()
+    
+   
     return render(request, 'dashboard/dashboard.html', {
         'my_lost':               my_lost,
         'my_found':              my_found,
@@ -119,17 +134,18 @@ def dashboard(request):
         'my_responses':          my_responses,
         'responses_on_my_items': responses_on_my_items,
         'unread_count':          unread_count,
+       
     })
 @login_required
 def found_response(request, pk):
     item = get_object_or_404(Item, pk=pk, item_type='lost', status='active')
 
     if item.posted_by == request.user:
-        messages.error(request, 'Ye aapka apna item hai.')
+        messages.error(request, 'You cannot say you found your own item.')
         return redirect('items:detail', pk=pk)
 
     if FoundResponse.objects.filter(item=item, responder=request.user).exists():
-        messages.warning(request, 'Aap pehle hi is item ke liye response de chuke hain.')
+        messages.warning(request, 'you have already said you found this item.')
         return redirect('items:detail', pk=pk)
 
     if request.method == 'POST':
@@ -139,7 +155,13 @@ def found_response(request, pk):
             resp.item      = item
             resp.responder = request.user
             resp.save()
-            messages.success(request, 'Aapka message bhej diya gaya! Item owner jald contact karega.')
+            create_notification(
+                recipient=item.posted_by,
+                notif_type='found_response',
+                item=item,
+                message=f'{request.user.full_name} said they found your item "{item.title}".',
+            )
+            messages.success(request, 'your message has been sent to the owner. They will contact you if they think it’s a match.')
             return redirect('items:detail', pk=pk)
     else:
         form = FoundResponseForm()
@@ -186,6 +208,12 @@ def admin_claim_detail(request, pk):
             claim.item.status = 'resolved'
             claim.item.save()
             messages.success(request, f'Claim approved! Item marked as resolved.')
+            create_notification(
+                recipient=claim.claimant,
+                notif_type='claim_approved',
+                item=claim.item,
+                message=f'Your claim on "{claim.item.title}" has been approved. Remarks: {remarks}',
+            )
         elif action == 'reject':
             claim.status        = 'rejected'
             claim.admin_remarks = remarks
@@ -194,5 +222,23 @@ def admin_claim_detail(request, pk):
             claim.item.status = 'active'
             claim.item.save()
             messages.warning(request, 'Claim rejected. Item is active again.')
+            create_notification(
+                recipient=claim.claimant,
+                notif_type='claim_rejected',
+                item=claim.item,
+                message=f'Your claim on "{claim.item.title}" has been rejected. Remarks: {remarks}',
+            )
         return redirect('items:admin_dashboard')
     return render(request, 'dashboard/admin_claim_detail.html', {'claim': claim})
+@login_required
+def mark_notification_read(request, pk):
+    notif = get_object_or_404(Notification, pk=pk, recipient=request.user)
+    notif.is_read = True
+    notif.save()
+    return redirect('items:dashboard')  
+
+@login_required
+def mark_all_notifications_read(request):
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    messages.success(request, 'All notifications marked as read.')
+    return redirect('items:dashboard') 

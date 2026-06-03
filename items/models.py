@@ -90,4 +90,26 @@ class FoundResponse(models.Model):
         unique_together = ('item', 'responder')
 
     def __str__(self):
-        return f"{self.responder.email} found {self.item.title}"    
+        return f"{self.responder.email} found {self.item.title}"  
+class Notification(models.Model):
+
+    NOTIF_TYPE_CHOICES = [
+        ('claim_submitted', 'Claim Submitted'),
+        ('claim_approved',  'Claim Approved'),
+        ('claim_rejected',  'Claim Rejected'),
+        ('found_response',  'Someone Found Your Item'),
+        ('item_resolved',   'Item Resolved'),
+    ]
+
+    recipient  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    notif_type = models.CharField(max_length=30, choices=NOTIF_TYPE_CHOICES)
+    item       = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
+    message    = models.CharField(max_length=300)
+    is_read    = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.notif_type}] → {self.recipient.email}"      

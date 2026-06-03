@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Item, Claim, FoundResponse
+from .models import Item, Claim, FoundResponse ,Notification
 
 
 @admin.register(Item)
@@ -20,3 +20,9 @@ class ClaimAdmin(admin.ModelAdmin):
 class FoundResponseAdmin(admin.ModelAdmin):
     list_display  = ('item', 'responder', 'submitted_at', 'is_read')
     list_filter   = ('is_read',)
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display  = ('recipient', 'notif_type', 'message', 'is_read', 'created_at')
+    list_filter   = ('notif_type', 'is_read')
+    search_fields = ('message',)
