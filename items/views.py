@@ -41,12 +41,7 @@ def home(request):
     return render(request, 'items/home.html', {'items': items, 'form': form})
 
 
-def item_detail(request, pk):
-    item = get_object_or_404(Item, pk=pk)
-    already_claimed = False
-    if request.user.is_authenticated:
-        already_claimed = Claim.objects.filter(item=item, claimant=request.user).exists()
-    return render(request, 'items/detail.html', {'item': item, 'already_claimed': already_claimed})
+
 
 def item_detail(request, pk):
     item = get_object_or_404(Item, pk=pk)
@@ -66,7 +61,7 @@ def mark_item_resolved(request, pk):
     item = get_object_or_404(Item, pk=pk, posted_by=request.user)
     item.status = 'resolved'
     item.save()
-    messages.success(request, 'Item resolved mark ho gaya aur browse se hata diya gaya.')
+    messages.success(request, 'Item marked as resolved.')
     return redirect('items:dashboard')
 @login_required
 def post_item(request):
@@ -167,7 +162,7 @@ def found_response(request, pk):
         form = FoundResponseForm()
 
     return render(request, 'items/found_response.html', {'form': form, 'item': item})
-# ─── Admin Views ────────────────────────────────────────────
+
 
 @login_required
 @user_passes_test(is_admin)
